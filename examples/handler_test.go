@@ -36,7 +36,7 @@ func TestExampleHandler_put(t *testing.T) {
 		fixtureBlogCreate(3),
 	}
 	requestBody := bytes.NewBuffer(nil)
-	jsonapi.MarshalManyPayload(requestBody, blogs)
+	jsonapi.MarshalPayload(requestBody, blogs)
 
 	r, err := http.NewRequest(http.MethodPut, "/blogs", requestBody)
 	if err != nil {
@@ -82,5 +82,37 @@ func TestExampleHandler_get_list(t *testing.T) {
 
 	if e, a := http.StatusOK, rr.Code; e != a {
 		t.Fatalf("Expected a status of %d, got %d", e, a)
+	}
+}
+
+func TestHttpErrorWhenHeaderDoesNotMatch(t *testing.T) {
+	r, err := http.NewRequest(http.MethodGet, "/blogs", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Header.Set(headerAccept, "application/xml")
+
+	rr := httptest.NewRecorder()
+	handler := &ExampleHandler{}
+	handler.ServeHTTP(rr, r)
+
+	if rr.Code != http.StatusUnsupportedMediaType {
+		t.Fatal("expected Unsupported Media Type staus error")
+	}
+}
+
+func TestHttpErrorWhenMethodDoesNotMatch(t *testing.T) {
+	r, err := http.NewRequest(http.MethodPatch, "/blogs", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Header.Set(headerAccept, jsonapi.MediaType)
+
+	rr := httptest.NewRecorder()
+	handler := &ExampleHandler{}
+	handler.ServeHTTP(rr, r)
+
+	if rr.Code != http.StatusNotFound {
+		t.Fatal("expected HTTP Status Not Found status error")
 	}
 }
